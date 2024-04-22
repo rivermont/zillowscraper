@@ -33,7 +33,7 @@ def crawl_result(url, user_agent):
     return out_listings, out_results
 
 
-def crawl_listing(url, user_agent, referer=''):
+def crawl_listing(url, user_agent, referer='', meta=True):
     """
     Crawls a Zillow listing page and returns metadata about the page and listed property.
     """
@@ -45,12 +45,15 @@ def crawl_listing(url, user_agent, referer=''):
 
     out_urls = get_urls(text)
 
-    out_data = {'url': url,
-                'crawl-time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-                'response-headers': dict(response.headers),
-                'response-code': response.status_code,
-                'urls': out_urls
-                }
+    out_data = {}
+
+    if meta:
+        out_data.update({'url': url,
+                         'crawl-time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+                         'response-headers': dict(response.headers),
+                         'response-code': response.status_code,
+                         'urls': out_urls
+                         })
 
     soup = BeautifulSoup(text, 'lxml')
     del headers, response, text, out_urls
@@ -77,7 +80,7 @@ def crawl_listing(url, user_agent, referer=''):
     return out_data
 
 
-def main(url_list, user_agent):
+def main(url_list, user_agent, meta):
     listings = set()
     # done = set()  # TODO: fix
 
@@ -109,7 +112,7 @@ def main(url_list, user_agent):
 
         parsed_url = urlparse(url)
 
-        data.append(crawl_listing(url, user_agent, parsed_url.netloc))
+        data.append(crawl_listing(url, user_agent, parsed_url.netloc, meta))
 
     return data
 
@@ -118,7 +121,7 @@ if __name__ == '__main__':
     init_urls = ['https://www.zillow.com/watauga-county-nc']
     init_ua = 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0'
 
-    results = main(init_urls, init_ua)
+    results = main(init_urls, init_ua, False)
 
     with open('results.json', 'w+') as f:
         f.write(json.dumps(results))
