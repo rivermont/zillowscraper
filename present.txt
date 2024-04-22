@@ -5,7 +5,7 @@ There are probably dozens of approaches for scraping data from websites using Py
 This example we will be scraping Zillow housing data to be used in later analysis.
 
 Note: For ethical web scraping it is critical to check the robots.txt for the website you are targeting.
-Many sites do not want high traffic from automated services like web scrapers, so they disallow sll or part of the website to robots (us).
+Many sites do not want high traffic from automated services like web scrapers, so they disallow all or part of the website to robots (us).
 It is against Zillow Terms of Use (sec 5) to "conduct automated queries (including screen and database scraping, spiders, robots, crawlers)".
 We're skipping this part for the example; you would use a library like Protego to parse the robots.txt.
 

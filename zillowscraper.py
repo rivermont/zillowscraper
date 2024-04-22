@@ -4,6 +4,7 @@ from time import gmtime, strftime, sleep
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import requests
+import json
 
 
 def get_urls(text):
@@ -50,7 +51,24 @@ def crawl_listing(url, user_agent, referer=''):
 
     soup = BeautifulSoup(text, 'lxml')
 
-    # TODO extract variables
+    # extract variables
+    try:
+        footage = soup.findAll('div', {'data-testid': 'bed-bath-sqft-fact-container'})[-1].text
+    except AttributeError as e:
+        print(e)
+        footage = None
+        # footage = soup.select('.summary-container > div > div > div > span > span')[-1].text
+
+    try:
+        addr = soup.find('div', {'data-testid': 'home-details-chip-container'}).find('h1').text
+    except AttributeError as e:
+        print(e)
+        addr = None
+        # addr = soup.select_one('.summary-container > div > div > div > h1').text
+
+    out_data.update({'sq_footage': footage,
+                     'address': addr
+                     })
 
     return out_data
 
@@ -65,14 +83,15 @@ def main(url_list, user_agent):
         url = url_list.pop()
         done.add(url)
 
-        print(url)
+        print(f'Crawling reults page: {url}')
 
         out_listings, out_results = crawl_result(url, user_agent)
 
         listings.update(out_listings)
 
+        # TODO: add additional listing results pages to crawl list
         # for i in out_results:
-        #     if i not in done:
+        #     if i not in done:  # TODO: this does not work for some reason
         #         print(i)
         #         url_list.append(i)
 
@@ -83,7 +102,7 @@ def main(url_list, user_agent):
 
         url = listings.pop()
 
-        print(url)
+        print(f'Crawling listing {url}')
 
         parsed_url = urlparse(url)
 
@@ -98,4 +117,7 @@ if __name__ == '__main__':
     init_urls = ['https://www.zillow.com/watauga-county-nc']
     init_ua = 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0'
 
-    print(main(init_urls, init_ua))
+    results = main(init_urls, init_ua)
+
+    with open('results.json', 'w+') as f:
+        f.write(json.dumps(results))
