@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 import requests
 import json
 
+crawl_delay = 1  # time to wait between requests
+
 
 def get_urls(text):
     """
@@ -15,25 +17,26 @@ def get_urls(text):
     return [i['href'] for i in BeautifulSoup(text, 'lxml').find_all('a', href=True)]
 
 
-def filter_urls(urls):
-    """
-    Returns two lists, one of individual listings and one of additional pages of listings.
-    """
-    return [i for i in urls if '/homedetails/' in i], ['https://www.zillow.com' + i for i in urls if i[-3:] == '_p/']
-
-
 def crawl_result(url, user_agent):
+    """
+    Crawls a Zillow results page and returns two lists, one of individual listings and one of more listing results.
+    """
     headers = {'user-agent': user_agent}
 
     response = requests.get(url, headers=headers)
-    text = response.text
 
-    out_urls = get_urls(text)
+    urls = get_urls(response.text)
 
-    return filter_urls(out_urls)
+    out_listings = [i for i in urls if '/homedetails/' in i]
+    out_results = ['https://www.zillow.com' + i for i in urls if i[-3:] == '_p/']
+
+    return out_listings, out_results
 
 
 def crawl_listing(url, user_agent, referer=''):
+    """
+    Crawls a Zillow listing page and returns metadata about the page and listed property.
+    """
     headers = {'user-agent': user_agent,
                'referer': referer}
 
@@ -50,6 +53,7 @@ def crawl_listing(url, user_agent, referer=''):
                 }
 
     soup = BeautifulSoup(text, 'lxml')
+    del headers, response, text, out_urls
 
     # extract variables
     try:
@@ -75,15 +79,15 @@ def crawl_listing(url, user_agent, referer=''):
 
 def main(url_list, user_agent):
     listings = set()
-    done = set()
+    # done = set()  # TODO: fix
 
     while url_list:  # crawl listing results
-        sleep(1)  # crawl delay
+        sleep(crawl_delay)
 
         url = url_list.pop()
-        done.add(url)
+        # done.add(url)  # TODO: fix
 
-        print(f'Crawling reults page: {url}')
+        print(f'Crawling results page: {url}')
 
         out_listings, out_results = crawl_result(url, user_agent)
 
@@ -92,21 +96,18 @@ def main(url_list, user_agent):
         # TODO: add additional listing results pages to crawl list
         # for i in out_results:
         #     if i not in done:  # TODO: this does not work for some reason
-        #         print(i)
         #         url_list.append(i)
 
     data = []
 
     while listings:
-        sleep(1)  # crawl delay
+        sleep(crawl_delay)
 
         url = listings.pop()
 
         print(f'Crawling listing {url}')
 
         parsed_url = urlparse(url)
-
-        if not parsed_url.netloc: continue  # ignore weird/relative URLs
 
         data.append(crawl_listing(url, user_agent, parsed_url.netloc))
 
